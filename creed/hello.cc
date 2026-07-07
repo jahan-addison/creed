@@ -1,11 +1,11 @@
-#include <crescendum/hello.h>
+#include <creed/hello.h>
 
 #include <fmt/format.h> // for format
 #include <matchit.h>    // for pattern, _, PatternPipable
 #include <string>       // for basic_string, string
 #include <string_view>  // for basic_string_view, string_view
 
-namespace crescendum {
+namespace creed {
 
 std::string Greeter::greet(std::string_view person)
 {
@@ -20,4 +20,4 @@ std::string Greeter::greet(std::string_view person)
         });
 }
 
-} // namespace crescendum
+} // namespace creed

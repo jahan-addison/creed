@@ -26,10 +26,17 @@ jobs:
           - platform: { name: "x86_64 Linux", os: ubuntu-latest, arch: x86_64 }
             compiler: clang++
             cxx: clang++
-          # x86_64 macOS
-          - platform: { name: "x86_64 macOS", os: macos-latest, arch: x86_64 }
+          # arm64 Linux
+          - platform: { name: "ARM64 Linux", os: ubuntu-24.04-arm, arch: arm64 }
+            compiler: g++
+            cxx: g++
+          - platform: { name: "ARM64 Linux", os: ubuntu-24.04-arm, arch: arm64 }
             compiler: clang++
             cxx: clang++
+          # x86_64 macOS
+          # - platform: { name: "x86_64 macOS", os: macos-latest, arch: x86_64 }
+          #   compiler: clang++
+          #   cxx: clang++
           # ARM64 macOS
           - platform: { name: "ARM64 macOS", os: macos-latest, arch: arm64 }
             compiler: clang++
@@ -81,7 +88,7 @@ jobs:
           cmake -Bbuild -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} -DIWYU=OFF -DCMAKE_BUILD_TYPE=Debug $SANDFLAGS $COVERAGE -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: build
-        run: cmake --build build
+        run: cmake --build build -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
       - name: test
         run: |
@@ -100,7 +107,7 @@ jobs:
       #     matrix.platform.name == 'x86_64 macOS' &&
       #     matrix.compiler == 'clang++'
       #   run: |
-      #     cmake --build build
+      #     cmake --build build -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
       #     cmake --build build --target coverage
 
       # - name: deploy

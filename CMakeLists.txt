@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16...3.29)
 
-set(CMAKE_POLICY_VERSION_MINIMUM 3.10)
+set(CMAKE_POLICY_VERSION_MINIMUM 3.16)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(
@@ -10,12 +10,13 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(
-  crescendum
+  creed
   VERSION 0.0.1
   LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
@@ -65,13 +66,19 @@ else()
   endif()
 endif()
 
+# ##############################################################################
+# Sanitizers
+# ##############################################################################
+
 # Enable sanitizer with `-DUSE_SANITIZER=<VALUE>` argument to CMake Address,
 # Memory, MemoryWithOrigins, Undefined, Thread, Leak, 'Address;Undefined'
 if(USE_SANITIZER)
   include(${cmake-scripts_SOURCE_DIR}/sanitizers.cmake)
 endif()
 
+# ##############################################################################
 # Include-what-you-use https://include-what-you-use.org/
+# ##############################################################################
 
 if(IWYU)
   find_program(IWYU_EXECUTABLE include-what-you-use)
@@ -88,6 +95,40 @@ if(IWYU)
       WARNING "Include-What-You-Use executable not found. IWYU will not be run."
     )
   endif()
+endif()
+
+# ##############################################################################
+# clang-tidy (cmake --build build --target tidy)
+# ##############################################################################
+
+# Files matching this regex are skipped by the `tidy` target below. Edit it to
+# fit your own project layout and generated files.
+set(CLANG_TIDY_IGNORE_REGEX
+    "^(?!.*/(test|\\.cache)/).*\\.cc$"
+    CACHE STRING "run-clang-tidy file filter regex")
+
+find_program(CLANG_TIDY_EXECUTABLE clang-tidy)
+find_program(RUN_CLANG_TIDY_EXECUTABLE NAMES run-clang-tidy run-clang-tidy.py)
+if(CLANG_TIDY_EXECUTABLE AND RUN_CLANG_TIDY_EXECUTABLE)
+  include(ProcessorCount)
+  ProcessorCount(NPROC)
+  set(TIDY_COMPILE_COMMANDS_DIR ${CMAKE_BINARY_DIR}/tidy)
+  add_custom_target(
+    tidy
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${TIDY_COMPILE_COMMANDS_DIR}
+    COMMAND
+      ${CMAKE_COMMAND}
+      -DSOURCE_COMPILE_COMMANDS=${CMAKE_BINARY_DIR}/compile_commands.json
+      -DOUTPUT_COMPILE_COMMANDS=${TIDY_COMPILE_COMMANDS_DIR}/compile_commands.json
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/dedup_compile_commands.cmake
+    COMMAND ${RUN_CLANG_TIDY_EXECUTABLE} -p ${TIDY_COMPILE_COMMANDS_DIR} -j
+            ${NPROC} -warnings-as-errors=* "${CLANG_TIDY_IGNORE_REGEX}"
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Running clang-tidy over ${PROJECT_NAME}/ sources"
+    VERBATIM)
+else()
+  message(
+    STATUS "clang-tidy or run-clang-tidy not found: `tidy` target unavailable.")
 endif()
 
 # ##############################################################################
